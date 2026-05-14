@@ -141,10 +141,22 @@ class _TripsScreenState extends State<TripsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text(t.id, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                            child: Text(t.id, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
+                          ),
+                          if (t.delayMinutes > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(4)),
+                              child: Text('DELAY ${t.delayMinutes}M', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ],
                       ),
                       _Badge(label: t.status.toUpperCase(), color: color),
                     ],
@@ -206,6 +218,8 @@ class _TripsScreenState extends State<TripsScreen> {
     final from = TextEditingController();
     final to = TextEditingController();
     final eway = TextEditingController();
+    final waypoints = TextEditingController();
+    final tolls = TextEditingController();
 
     showDialog(
       context: context,
@@ -220,6 +234,8 @@ class _TripsScreenState extends State<TripsScreen> {
               TextField(controller: from, decoration: const InputDecoration(labelText: 'Source City')),
               TextField(controller: to, decoration: const InputDecoration(labelText: 'Destination City')),
               TextField(controller: eway, decoration: const InputDecoration(labelText: 'e-Way Bill Number')),
+              TextField(controller: waypoints, decoration: const InputDecoration(labelText: 'Waypoints (comma separated)')),
+              TextField(controller: tolls, decoration: const InputDecoration(labelText: 'Toll Count')),
             ],
           ),
         ),
@@ -239,6 +255,8 @@ class _TripsScreenState extends State<TripsScreen> {
                 ewayBill: eway.text,
                 date: DateTime.now().toString().split(' ')[0],
                 progress: 0.0,
+                waypoints: waypoints.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+                tollCount: int.tryParse(tolls.text) ?? 0,
               ));
               Navigator.pop(context);
             }, 
@@ -294,6 +312,8 @@ class _TripDetailDrawer extends StatelessWidget {
                 _InfoRow(label: 'Load Description', value: trip.load, icon: LucideIcons.box),
                 _InfoRow(label: 'e-Way Bill', value: trip.ewayBill, icon: LucideIcons.fileText),
                 _InfoRow(label: 'Date', value: trip.date, icon: LucideIcons.calendar),
+                _InfoRow(label: 'Waypoints', value: trip.waypoints.isEmpty ? 'None' : trip.waypoints.join(', '), icon: LucideIcons.mapPin),
+                _InfoRow(label: 'Tolls Passed', value: '${trip.tollCount}', icon: LucideIcons.creditCard),
                 const Divider(height: 48),
                 const Text('ASSETS ASSIGNED', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 16),

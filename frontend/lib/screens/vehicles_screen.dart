@@ -14,11 +14,23 @@ class VehiclesScreen extends StatefulWidget {
 class _VehiclesScreenState extends State<VehiclesScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   Vehicle? _detailVehicle;
+  String _searchQuery = '';
+  String _selectedStatus = 'All';
 
   @override
   Widget build(BuildContext context) {
     final engine = context.watch<DataEngine>();
     final vehicles = engine.vehicles;
+    
+    final filteredVehicles = vehicles.where((v) {
+      final matchesSearch = v.plate.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          v.driver.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesStatus = _selectedStatus == 'All' ||
+          (_selectedStatus == 'Running' && v.status == 'running') ||
+          (_selectedStatus == 'Idle' && v.status == 'idle') ||
+          (_selectedStatus == 'Needs Attention' && v.alerts.isNotEmpty);
+      return matchesSearch && matchesStatus;
+    }).toList();
     
     return Scaffold(
       key: _scaffoldKey,
@@ -82,10 +94,43 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
             const SizedBox(height: 16),
             _buildKpis(vehicles),
             const SizedBox(height: 16),
-            _buildVehicleTable(context, engine, vehicles),
+            _buildFilters(),
+            const SizedBox(height: 16),
+            _buildVehicleTable(context, engine, filteredVehicles),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFilters() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Search by plate or driver',
+            prefixIcon: Icon(Icons.search),
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (val) => setState(() => _searchQuery = val),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: ['All', 'Running', 'Idle', 'Needs Attention'].map((status) {
+            return ChoiceChip(
+              label: Text(status),
+              selected: _selectedStatus == status,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedStatus = status);
+                }
+              },
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -138,7 +183,10 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
           headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
           columns: const [
             DataColumn(label: Text('Reg. Plate')),
+            DataColumn(label: Text('Driver')),
             DataColumn(label: Text('Status/Loc')),
+            DataColumn(label: Text('Fuel %')),
+            DataColumn(label: Text('Avg. Mileage')),
             DataColumn(label: Text('Compliance')),
             DataColumn(label: Text('Health')),
             DataColumn(label: Text('Actions')),
@@ -156,6 +204,7 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                   Text(v.model, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 ],
               )),
+              DataCell(Text(v.driver)),
               DataCell(Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -164,6 +213,8 @@ class _VehiclesScreenState extends State<VehiclesScreen> {
                   Text(v.loc, style: const TextStyle(fontSize: 11)),
                 ],
               )),
+              DataCell(Text('${v.fuel}%')),
+              DataCell(Text('${v.mil} km/L')),
               DataCell(Row(
                 children: [
                   _CompIcon(icon: LucideIcons.shieldCheck, color: AppTheme.success, tooltip: 'Insurance Valid'),

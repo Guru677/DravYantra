@@ -32,6 +32,8 @@ class _FuelScreenState extends State<FuelScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildCityRatesBanner(),
+          const SizedBox(height: 16),
           Wrap(
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.center,
@@ -70,6 +72,8 @@ class _FuelScreenState extends State<FuelScreen> {
           const SizedBox(height: 16),
           _buildSpendChart(),
           const SizedBox(height: 16),
+          _buildAnomalyAlertsPanel(),
+          const SizedBox(height: 16),
           Row(
             children: [
               FilterChip(
@@ -94,6 +98,82 @@ class _FuelScreenState extends State<FuelScreen> {
     );
   }
 
+  Widget _buildCityRatesBanner() {
+    final rates = [
+      {'city': 'Mumbai', 'rate': '₹94.27'},
+      {'city': 'Delhi', 'rate': '₹87.62'},
+      {'city': 'Bangalore', 'rate': '₹88.94'},
+      {'city': 'Chennai', 'rate': '₹94.24'},
+      {'city': 'Kolkata', 'rate': '₹90.76'},
+    ];
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: rates.length,
+        itemBuilder: (context, index) {
+          final r = rates[index];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                Text(r['city']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(width: 4),
+                Text(r['rate']!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAnomalyAlertsPanel() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(LucideIcons.alertTriangle, color: AppTheme.danger, size: 16),
+                SizedBox(width: 8),
+                Text('Fuel Anomaly Alerts', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _anomalyItem('MH 43 BP 2114', 'Excess fill: 120L vs 100L capacity', '2026-05-14'),
+            _anomalyItem('MH 01 AB 1234', 'Night-time fill (02:30 AM)', '2026-05-13'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _anomalyItem(String plate, String msg, String date) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        children: [
+          const Icon(Icons.circle, size: 6, color: AppTheme.danger),
+          const SizedBox(width: 8),
+          Text(plate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(msg, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          ),
+          const SizedBox(width: 8),
+          Text(date, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildKpis(double spend, double liters, int suspect) {
     return Wrap(
       spacing: 12,
@@ -101,6 +181,7 @@ class _FuelScreenState extends State<FuelScreen> {
       children: [
         _kpiCard('Total Spend', '₹${spend.toStringAsFixed(0)}', 'Budget: ₹6,65,000', AppTheme.primaryBlue),
         _kpiCard('Total Consumed', '${liters.toStringAsFixed(0)} L', 'Avg rate: ₹92.5/L', AppTheme.success),
+        _kpiCard('Fleet Avg Mileage', '4.2 km/L', 'Target: 4.5 km/L', Colors.deepPurple),
         _kpiCard('Suspect Logs', '$suspect', 'Flagged for review', AppTheme.danger),
       ],
     );

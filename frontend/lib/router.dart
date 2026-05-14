@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'screens/splash_screen.dart';
-import 'screens/role_selection_screen.dart';
+
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/onboarding_screen.dart';
+
+import 'screens/admin_dashboard_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/placeholder_screen.dart';
+
 import 'screens/live_tracking_screen.dart';
 import 'screens/vehicles_screen.dart';
 import 'screens/drivers_screen.dart';
@@ -46,18 +47,14 @@ NoTransitionPage buildNoTransitionPage<T>({
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
-  initialLocation: '/splash',
+  initialLocation: '/login',
   routes: [
     GoRoute(
       path: '/splash',
       pageBuilder: (context, state) => buildPageWithDefaultTransition(
         context: context, state: state, child: const SplashScreen()),
     ),
-    GoRoute(
-      path: '/role_selection',
-      pageBuilder: (context, state) => buildPageWithDefaultTransition(
-        context: context, state: state, child: const RoleSelectionScreen()),
-    ),
+
     GoRoute(
       path: '/login',
       pageBuilder: (context, state) => buildPageWithDefaultTransition(
@@ -68,10 +65,11 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => buildPageWithDefaultTransition(
         context: context, state: state, child: const SignupScreen()),
     ),
+
     GoRoute(
-      path: '/onboarding',
+      path: '/admin',
       pageBuilder: (context, state) => buildPageWithDefaultTransition(
-        context: context, state: state, child: const OnboardingScreen()),
+        context: context, state: state, child: const AdminDashboardScreen()),
     ),
     ShellRoute(
       navigatorKey: shellNavigatorKey,

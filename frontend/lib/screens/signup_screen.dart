@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../core/theme.dart';
+import '../core/config.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -42,7 +43,7 @@ class _SignupScreenState extends State<SignupScreen> {
       if (user != null) {
         final token = await user.getIdToken();
         final response = await http.post(
-          Uri.parse('http://172.22.231.146:3000/api/users/sync'),
+          Uri.parse('${AppConfig.apiBaseUrl}/api/users/sync'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -51,7 +52,7 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         
         if (response.statusCode == 200 && mounted) {
-          context.go('/onboarding');
+          context.go('/dashboard');
         } else {
           throw Exception('Failed to sync user to backend');
         }

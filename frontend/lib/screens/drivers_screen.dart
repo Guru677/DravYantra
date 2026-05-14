@@ -21,6 +21,8 @@ class _DriversScreenState extends State<DriversScreen> {
   Widget build(BuildContext context) {
     final engine = context.watch<DataEngine>();
     final drivers = engine.drivers;
+    final sortedDrivers = List<Driver>.from(drivers)..sort((a, b) => b.score.compareTo(a.score));
+    final atRisk = drivers.where((d) => d.score < 60).toList();
     
     return Scaffold(
       key: _scaffoldKey,
@@ -65,7 +67,9 @@ class _DriversScreenState extends State<DriversScreen> {
             const SizedBox(height: 16),
             _buildKpis(drivers),
             const SizedBox(height: 16),
-            _buildDriversGrid(context, engine, drivers),
+            _buildLeaderboardTable(context, sortedDrivers),
+            const SizedBox(height: 16),
+            _buildCoachingSuggestions(atRisk),
           ],
         ),
       ),
@@ -111,109 +115,80 @@ class _DriversScreenState extends State<DriversScreen> {
     );
   }
 
-  Widget _buildDriversGrid(BuildContext context, DataEngine engine, List<Driver> drivers) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 450,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        mainAxisExtent: 240,
+  Widget _buildLeaderboardTable(BuildContext context, List<Driver> drivers) {
+    return Card(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+          columns: const [
+            DataColumn(label: Text('Rank')),
+            DataColumn(label: Text('Name')),
+            DataColumn(label: Text('Score')),
+            DataColumn(label: Text('Mileage')),
+            DataColumn(label: Text('Trips')),
+          ],
+          rows: drivers.asMap().entries.map((entry) {
+            final index = entry.key;
+            final d = entry.value;
+            return DataRow(cells: [
+              DataCell(Text('#${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold))),
+              DataCell(Text(d.name)),
+              DataCell(Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: (d.score >= 75 ? AppTheme.success : d.score >= 55 ? AppTheme.warning : AppTheme.danger).withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                child: Text('${d.score}', style: TextStyle(color: d.score >= 75 ? AppTheme.success : d.score >= 55 ? AppTheme.warning : AppTheme.danger, fontWeight: FontWeight.bold)),
+              )),
+              DataCell(Text('${d.mil.toStringAsFixed(1)} km/L')),
+              DataCell(Text('${d.trips}')),
+            ]);
+          }).toList(),
+        ),
       ),
-      itemCount: drivers.length,
-      itemBuilder: (context, index) {
-        final d = drivers[index];
-        final color = d.score >= 75 ? AppTheme.success : d.score >= 55 ? AppTheme.warning : AppTheme.danger;
-        bool licExpiring = DateTime.parse(d.licExp).difference(DateTime.now()).inDays < 60;
+    );
+  }
 
-        return InkWell(
-          onTap: () {
-            setState(() => _detailDriver = d);
-            _scaffoldKey.currentState?.openEndDrawer();
-          },
-          child: Card(
-            elevation: 2,
-            shadowColor: Colors.black12,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
+  Widget _buildCoachingSuggestions(List<Driver> atRisk) {
+    if (atRisk.isEmpty) return const SizedBox.shrink();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(LucideIcons.alertTriangle, color: AppTheme.danger, size: 16),
+                SizedBox(width: 8),
+                Text('Driver Coaching Suggestions', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: color,
-                        child: Text(d.name.substring(0, 1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(d.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${d.id} · ${d.exp} yrs exp', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                                  child: Text(d.isActive ? d.status.replaceAll('_', ' ').toUpperCase() : 'DEACTIVATED', style: TextStyle(fontSize: 10, color: d.isActive ? color : AppTheme.textSecondary, fontWeight: FontWeight.bold)),
-                                ),
-                                if (licExpiring && d.isActive) ...[
-                                  const SizedBox(width: 8),
-                                  const Icon(LucideIcons.alertTriangle, size: 14, color: AppTheme.danger),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(width: 40, height: 40, child: CircularProgressIndicator(value: d.score / 100, color: color, backgroundColor: Colors.grey.shade200, strokeWidth: 4)),
-                              Text('${d.score}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: color)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _miniStat('km/L', d.mil.toStringAsFixed(1)),
-                      _miniStat('Idle', '${d.idle}%'),
-                      _miniStat('Harsh', '${d.harsh}'),
-                      _miniStat('O-Speed', '${d.overSpeed}'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(LucideIcons.truck, size: 12, color: AppTheme.textSecondary),
-                      const SizedBox(width: 6),
-                      Text(d.vehicle.isEmpty ? 'Unassigned' : d.vehicle, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                      const Spacer(),
-                      Text('License: ${d.licExp}', style: TextStyle(fontSize: 10, color: licExpiring ? AppTheme.danger : AppTheme.textSecondary, fontWeight: licExpiring ? FontWeight.bold : FontWeight.normal)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+            const SizedBox(height: 12),
+            ...atRisk.map((d) {
+              String suggestion = 'Needs general coaching.';
+              if (d.overSpeed > 5) {
+                suggestion = 'Focus on speed control.';
+              } else if (d.idle > 20) {
+                suggestion = 'Focus on idle reduction.';
+              }
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.circle, size: 8, color: AppTheme.danger),
+                    const SizedBox(width: 8),
+                    Text(d.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 8),
+                    const Text('—'),
+                    const SizedBox(width: 8),
+                    Text(suggestion, style: const TextStyle(color: AppTheme.textSecondary)),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
     );
   }
 

@@ -134,15 +134,18 @@ class _KpiGrid extends StatelessWidget {
     final engine = context.watch<DataEngine>();
     
     return GridView.count(
-      crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 5 : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
+      crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 4 : (MediaQuery.of(context).size.width > 800 ? 3 : 2),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 12,
       mainAxisSpacing: 12,
-      childAspectRatio: 1.6,
+      childAspectRatio: 1.5,
       children: [
         _buildKpiCard('Fuel Spend', _inr(engine.spend), LucideIcons.fuel, AppTheme.primaryBlue, 'This Month'),
+        _buildKpiCard('Fuel Loss', _inr(engine.loss), LucideIcons.fuel, AppTheme.danger, 'Estimated loss'),
+        _buildKpiCard('Savings Opp.', _inr(engine.savings), LucideIcons.trendingUp, AppTheme.success, 'Recoverable'),
         _buildKpiCard('Active Vehicles', '${engine.active} / ${engine.vehicles.length}', LucideIcons.truck, AppTheme.success, 'Running Now'),
+        _buildKpiCard('Drivers Active', '${engine.drivers.where((d) => d.status == 'on_duty').length}', LucideIcons.user, AppTheme.primaryBlue, 'On duty now'),
         _buildKpiCard('Avg. Mileage', '${engine.avgMil} km/L', LucideIcons.trendingUp, AppTheme.primaryBlue, 'Fleet Average'),
         _buildKpiCard('Idle %', '${engine.idle}%', LucideIcons.clock, AppTheme.warning, 'Fleet Average'),
         _buildKpiCard('Fleet Health', '${engine.health}/100', LucideIcons.activity, AppTheme.success, 'Overall Score'),
@@ -545,7 +548,13 @@ class _LiveFleetCard extends StatelessWidget {
                   )),
                   DataCell(Text('${v.speed} km/h', style: TextStyle(color: v.speed > 85 ? AppTheme.danger : AppTheme.textPrimary))),
                   DataCell(Text('${v.fuel}%')),
-                  DataCell(Text('₹${v.fastag}', style: TextStyle(fontWeight: FontWeight.bold, color: v.fastag < 500 ? AppTheme.danger : AppTheme.textPrimary))),
+                  DataCell(v.isBlacklisted
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(4)),
+                          child: const Text('BLACKLISTED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        )
+                      : Text('₹${v.fastag}', style: TextStyle(fontWeight: FontWeight.bold, color: v.fastag < 500 ? AppTheme.danger : AppTheme.textPrimary))),
                 ]);
               }).toList(),
             ),

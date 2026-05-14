@@ -31,11 +31,33 @@ class AlertSettings {
   final bool whatsappEnabled;
   final bool smsEnabled;
   final bool pushEnabled;
+  final double mileageThreshold;
+  final Map<String, bool> perTypeToggles;
 
   AlertSettings({
     required this.speedThreshold, required this.idleLimit, required this.fuelDropThreshold, 
-    required this.fastagThreshold, required this.whatsappEnabled, required this.smsEnabled, required this.pushEnabled
+    required this.fastagThreshold, required this.whatsappEnabled, required this.smsEnabled, required this.pushEnabled,
+    this.mileageThreshold = 4.0,
+    this.perTypeToggles = const {'overSpeed': true, 'excessIdle': true, 'fuelDrop': true, 'geoFence': true, 'harshBraking': true, 'eWayBill': true, 'fastag': true, 'gpsLost': true},
   });
+
+  AlertSettings copyWith({
+    int? speedThreshold, int? idleLimit, double? fuelDropThreshold, int? fastagThreshold,
+    bool? whatsappEnabled, bool? smsEnabled, bool? pushEnabled,
+    double? mileageThreshold, Map<String, bool>? perTypeToggles
+  }) {
+    return AlertSettings(
+      speedThreshold: speedThreshold ?? this.speedThreshold,
+      idleLimit: idleLimit ?? this.idleLimit,
+      fuelDropThreshold: fuelDropThreshold ?? this.fuelDropThreshold,
+      fastagThreshold: fastagThreshold ?? this.fastagThreshold,
+      whatsappEnabled: whatsappEnabled ?? this.whatsappEnabled,
+      smsEnabled: smsEnabled ?? this.smsEnabled,
+      pushEnabled: pushEnabled ?? this.pushEnabled,
+      mileageThreshold: mileageThreshold ?? this.mileageThreshold,
+      perTypeToggles: perTypeToggles ?? this.perTypeToggles,
+    );
+  }
 }
 
 class FuelLog {
@@ -85,6 +107,9 @@ class Trip {
   final double distance;
   final double fuelUsed;
   final double score;
+  final int delayMinutes;
+  final List<String> waypoints;
+  final int tollCount;
 
   Trip({
     required this.id, 
@@ -101,9 +126,12 @@ class Trip {
     this.distance = 0.0,
     this.fuelUsed = 0.0,
     this.score = 0.0,
+    this.delayMinutes = 0,
+    this.waypoints = const [],
+    this.tollCount = 0,
   });
 
-  Trip copyWith({String? status, double? progress, double? distance, double? fuelUsed, double? score}) {
+  Trip copyWith({String? status, double? progress, double? distance, double? fuelUsed, double? score, int? delayMinutes, List<String>? waypoints, int? tollCount}) {
     return Trip(
       id: id, vehicle: vehicle, driver: driver, from: from, to: to, 
       load: load, client: client, status: status ?? this.status, 
@@ -111,6 +139,9 @@ class Trip {
       distance: distance ?? this.distance,
       fuelUsed: fuelUsed ?? this.fuelUsed,
       score: score ?? this.score,
+      delayMinutes: delayMinutes ?? this.delayMinutes,
+      waypoints: waypoints ?? this.waypoints,
+      tollCount: tollCount ?? this.tollCount,
     );
   }
 }
@@ -123,16 +154,19 @@ class Alert {
   final String sev;
   final AlertCategory category;
   final AlertStatus status;
+  final String driver;
 
   Alert({
     required this.id, required this.truck, required this.msg, required this.time, 
-    required this.sev, required this.category, this.status = AlertStatus.pending
+    required this.sev, required this.category, this.status = AlertStatus.pending,
+    this.driver = '',
   });
 
-  Alert copyWith({AlertStatus? status}) {
+  Alert copyWith({AlertStatus? status, String? driver}) {
     return Alert(
       id: id, truck: truck, msg: msg, time: time, sev: sev, 
-      category: category, status: status ?? this.status
+      category: category, status: status ?? this.status,
+      driver: driver ?? this.driver,
     );
   }
 }
@@ -163,6 +197,7 @@ class Vehicle {
   final List<List<double>> route; // List of [lat, lng] pairs
   final bool isActive;
   final List<ServiceRecord> serviceHistory;
+  final bool isBlacklisted;
 
   Vehicle({
     required this.plate, required this.model, required this.year, required this.type, required this.status, required this.driver,
@@ -172,9 +207,10 @@ class Vehicle {
     required this.lat, required this.lng, this.route = const [],
     this.isActive = true,
     this.serviceHistory = const [],
+    this.isBlacklisted = false,
   });
 
-  Vehicle copyWith({int? speed, double? fuel, double? idle, int? fastag, double? lat, double? lng, List<List<double>>? route, bool? isActive, List<ServiceRecord>? serviceHistory}) {
+  Vehicle copyWith({int? speed, double? fuel, double? idle, int? fastag, double? lat, double? lng, List<List<double>>? route, bool? isActive, List<ServiceRecord>? serviceHistory, bool? isBlacklisted}) {
     return Vehicle(
       plate: plate, model: model, year: year, type: type, status: status, driver: driver,
       loc: loc, speed: speed ?? this.speed, fuel: fuel ?? this.fuel, mil: mil,
@@ -183,6 +219,7 @@ class Vehicle {
       lat: lat ?? this.lat, lng: lng ?? this.lng, route: route ?? this.route,
       isActive: isActive ?? this.isActive,
       serviceHistory: serviceHistory ?? this.serviceHistory,
+      isBlacklisted: isBlacklisted ?? this.isBlacklisted,
     );
   }
 }
@@ -307,13 +344,26 @@ class DataEngine extends ChangeNotifier {
   };
 
   List<Alert> alerts = [
-    Alert(id: 'ALT-101', truck: 'MH 43 BP 2114', msg: 'Over-speed: 91 km/h', time: '10 mins ago', sev: 'danger', category: AlertCategory.safety),
-    Alert(id: 'ALT-102', truck: 'GJ 12 EZ 9012', msg: 'Low FASTag balance: ₹340', time: '1 hour ago', sev: 'warning', category: AlertCategory.compliance),
-    Alert(id: 'ALT-103', truck: 'MH 14 CX 5543', msg: 'Fuel drop detected (3L)', time: '2 hours ago', sev: 'danger', category: AlertCategory.fuel),
+    Alert(id: 'ALT-101', truck: 'MH 43 BP 2114', msg: 'Over-speed: 91 km/h', time: '10 mins ago', sev: 'danger', category: AlertCategory.safety, driver: 'Rajendra Prasad'),
+    Alert(id: 'ALT-102', truck: 'GJ 12 EZ 9012', msg: 'Low FASTag balance: ₹340', time: '1 hour ago', sev: 'warning', category: AlertCategory.compliance, driver: 'Abdul Ansari'),
+    Alert(id: 'ALT-103', truck: 'MH 14 CX 5543', msg: 'Fuel drop detected (3L)', time: '2 hours ago', sev: 'danger', category: AlertCategory.fuel, driver: 'Ramesh Kumar'),
   ];
 
   void addFuelLog(FuelLog log) {
+    // Find previous log for same vehicle
+    final prev = fuelLogs.firstWhere(
+      (l) => l.vehicle == log.vehicle,
+      orElse: () => log,
+    );
     fuelLogs = [log, ...fuelLogs];
+    // Compute km/L if we have two odometer readings
+    if (prev != log && log.odometer > prev.odometer && log.liters > 0) {
+      double kmPerL = (log.odometer - prev.odometer) / log.liters;
+      // Update the vehicle's mil field
+      vehicles = vehicles.map((v) => v.plate == log.vehicle
+          ? Vehicle(plate: v.plate, model: v.model, year: v.year, type: v.type, status: v.status, driver: v.driver, loc: v.loc, speed: v.speed, fuel: v.fuel, mil: double.parse(kmPerL.toStringAsFixed(2)), idle: v.idle, fastag: v.fastag, health: v.health, odo: log.odometer, nextService: v.nextService, insurance: v.insurance, permit: v.permit, puc: v.puc, lastFill: log.date, alerts: v.alerts, lat: v.lat, lng: v.lng, route: v.route, isActive: v.isActive, serviceHistory: v.serviceHistory, isBlacklisted: v.isBlacklisted)
+          : v).toList();
+    }
     notifyListeners();
   }
 
@@ -375,7 +425,7 @@ class DataEngine extends ChangeNotifier {
     contact: '+91 20 2740 1234'
   );
   UserAccount user = UserAccount(name: 'Admin User', email: 'admin@drav_yantra.in', phone: '+91 98765 43210', role: 'Fleet Manager', timezone: 'IST (UTC+5:30)');
-  AlertSettings alertSettings = AlertSettings(speedThreshold: 80, idleLimit: 15, fuelDropThreshold: 5.0, fastagThreshold: 500, whatsappEnabled: true, smsEnabled: false, pushEnabled: true);
+  AlertSettings alertSettings = AlertSettings(speedThreshold: 80, idleLimit: 15, fuelDropThreshold: 5.0, fastagThreshold: 500, whatsappEnabled: true, smsEnabled: false, pushEnabled: true, mileageThreshold: 4.0, perTypeToggles: const {'overSpeed': true, 'excessIdle': true, 'fuelDrop': true, 'geoFence': true, 'harshBraking': true, 'eWayBill': true, 'fastag': true, 'gpsLost': true});
 
   bool isLoggedIn = true;
 
@@ -404,7 +454,7 @@ class DataEngine extends ChangeNotifier {
     Vehicle(plate: 'DL 1G BC 8891', model: 'BharatBenz 2823', year: 2021, type: 'HCV', status: 'running', driver: 'Gurpreet Singh', loc: 'Delhi–Jaipur NH-48', speed: 78, fuel: 72, mil: 5.6, idle: 12, fastag: 8200, health: 82, odo: 93120, nextService: '2026-05-10', insurance: '2026-09-30', permit: '2026-12-31', puc: '2026-06-15', lastFill: '09 Apr', alerts: ['Harsh Braking'], lat: 27.5652, lng: 76.6231, route: [[28.6139, 77.2090], [27.5652, 76.6231], [26.9124, 75.7873]]),
     Vehicle(plate: 'GJ 12 EZ 9012', model: 'Ashok Leyland 2820', year: 2020, type: 'HCV', status: 'idle', driver: 'Abdul Ansari', loc: 'Gandhidham Port Gate', speed: 0, fuel: 54, mil: 4.3, idle: 47, fastag: 340, health: 62, odo: 29400, nextService: '2026-04-20', insurance: '2026-10-28', permit: '2026-06-30', puc: '2026-05-20', lastFill: '08 Apr', alerts: ['e-Way Bill Expiring', 'FASTag Low'], lat: 23.0333, lng: 70.1333),
     Vehicle(plate: 'KA 01 MR 7732', model: 'Tata Ultra 1918', year: 2023, type: 'MCV', status: 'running', driver: 'Suresh Patil', loc: 'Bangalore Hub, Whitefield', speed: 55, fuel: 81, mil: 5.1, idle: 14, fastag: 4500, health: 75, odo: 55400, nextService: '2026-06-01', insurance: '2026-11-15', permit: '2026-12-31', puc: '2026-08-10', lastFill: '07 Apr', alerts: [], lat: 12.9698, lng: 77.7499, route: [[12.9716, 77.5946], [12.9698, 77.7499], [13.0827, 80.2707]]),
-    Vehicle(plate: 'MH 43 BP 2114', model: 'Eicher Pro 2114', year: 2019, type: 'MCV', status: 'running', driver: 'Rajendra Prasad', loc: 'Mumbai–Pune Expressway', speed: 91, fuel: 35, mil: 3.9, idle: 27, fastag: -150, health: 52, odo: 61200, nextService: '2026-04-11', insurance: '2026-05-30', permit: '2026-09-30', puc: '2026-04-30', lastFill: '08 Apr', alerts: ['Over-speed', 'FASTag Blacklisted', 'Service Overdue'], lat: 18.9200, lng: 73.1500, route: [[19.0760, 72.8777], [18.9200, 73.1500], [18.5204, 73.8567]]),
+    Vehicle(plate: 'MH 43 BP 2114', model: 'Eicher Pro 2114', year: 2019, type: 'MCV', status: 'running', driver: 'Rajendra Prasad', loc: 'Mumbai–Pune Expressway', speed: 91, fuel: 35, mil: 3.9, idle: 27, fastag: -150, health: 52, odo: 61200, nextService: '2026-04-11', insurance: '2026-05-30', permit: '2026-09-30', puc: '2026-04-30', lastFill: '08 Apr', alerts: ['Over-speed', 'FASTag Blacklisted', 'Service Overdue'], lat: 18.9200, lng: 73.1500, route: [[19.0760, 72.8777], [18.9200, 73.1500], [18.5204, 73.8567]], isBlacklisted: true),
   ];
 
   List<Driver> drivers = [

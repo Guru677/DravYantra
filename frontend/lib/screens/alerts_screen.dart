@@ -17,6 +17,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   bool _whatsappEnabled = true;
   bool _smsEnabled = false;
+  bool _emailEnabled = true;
+  bool _pushEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +80,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
           const SizedBox(height: 16),
           _buildNotificationSettings(),
           const SizedBox(height: 16),
+          _buildPerTypeTogglesPanel(engine),
+          const SizedBox(height: 16),
           _buildKpis(activeAlerts.length, critical, warning),
           const SizedBox(height: 16),
           _buildFilters(),
@@ -92,14 +96,59 @@ class _AlertsScreenState extends State<AlertsScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: AppTheme.primaryBlue.withOpacity(0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.1))),
-      child: Row(
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 8,
         children: [
-          const Icon(LucideIcons.bellRing, size: 18, color: AppTheme.primaryBlue),
-          const SizedBox(width: 12),
-          const Expanded(child: Text('Notification Delivery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+          const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(LucideIcons.bellRing, size: 18, color: AppTheme.primaryBlue),
+              SizedBox(width: 8),
+              Text('Notification Delivery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            ],
+          ),
           _toggle('WhatsApp', _whatsappEnabled, (v) => setState(() => _whatsappEnabled = v)),
-          const SizedBox(width: 16),
           _toggle('SMS', _smsEnabled, (v) => setState(() => _smsEnabled = v)),
+          _toggle('Email', _emailEnabled, (v) => setState(() => _emailEnabled = v)),
+          _toggle('Push', _pushEnabled, (v) => setState(() => _pushEnabled = v)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerTypeTogglesPanel(DataEngine engine) {
+    final settings = engine.alertSettings;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Alert Types Enabled', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 16,
+            children: settings.perTypeToggles.entries.map((e) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(e.key.toUpperCase(), style: const TextStyle(fontSize: 12)),
+                  Switch(
+                    value: e.value,
+                    onChanged: (val) {
+                      final newToggles = Map<String, bool>.from(settings.perTypeToggles);
+                      newToggles[e.key] = val;
+                      engine.updateAlertSettings(settings.copyWith(perTypeToggles: newToggles));
+                    },
+                    activeColor: AppTheme.primaryBlue,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
@@ -224,6 +273,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
+                Text('Driver: ${a.driver}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
                 Text(a.msg, style: TextStyle(fontSize: 13, color: a.status == AlertStatus.acknowledged ? AppTheme.textSecondary : AppTheme.textPrimary)),
                 const SizedBox(height: 4),
                 Text(a.time, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),

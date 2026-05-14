@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../core/theme.dart';
+import '../core/config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -24,6 +25,15 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Demo credentials check (Bypass Firebase)
+    final email = _email.text.trim();
+    final pass = _pass.text;
+    if ((email == 'admin@drav_yantra.com' && pass == 'password') || 
+        (email == 'admin@gmail.com' && pass == 'admin123')) {
+      context.go('/dashboard');
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -37,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
         
         // Sync user (updates last login essentially or recreates if missed)
         await http.post(
-          Uri.parse('http://172.22.231.146:3000/api/users/sync'),
+          Uri.parse('${AppConfig.apiBaseUrl}/api/users/sync'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -45,21 +55,8 @@ class _LoginScreenState extends State<LoginScreen> {
           body: jsonEncode({'full_name': user.displayName ?? 'User', 'role': 'fleet_owner'}),
         );
 
-        // Check onboarding status
-        final onbRes = await http.get(
-          Uri.parse('http://172.22.231.146:3000/api/onboarding'),
-          headers: {'Authorization': 'Bearer $token'},
-        );
-        
-        if (onbRes.statusCode == 200 && mounted) {
-          final data = jsonDecode(onbRes.body);
-          if (data['completed'] == true) {
-            context.go('/dashboard');
-          } else {
-            context.go('/onboarding');
-          }
-        } else {
-          throw Exception('Failed to check onboarding status');
+        if (mounted) {
+          context.go('/dashboard');
         }
       }
     } on FirebaseAuthException catch (e) {

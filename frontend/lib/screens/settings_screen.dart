@@ -18,7 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final engine = context.watch<DataEngine>();
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -34,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Tab(text: 'Organization'),
               Tab(text: 'Account'),
               Tab(text: 'Alert Thresholds'),
+              Tab(text: 'Integrations'),
               Tab(text: 'Security'),
             ],
           ),
@@ -43,6 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildOrgTab(engine),
             _buildAccountTab(engine),
             _buildAlertsTab(engine),
+            _buildIntegrationsTab(engine),
             _buildSecurityTab(engine),
           ],
         ),
@@ -119,11 +121,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildThresholdSlider('Idle Duration Limit', '${engine.alertSettings.idleLimit} mins', engine.alertSettings.idleLimit / 60),
           _buildThresholdSlider('Fuel Drop Sensitivity', '${engine.alertSettings.fuelDropThreshold}%', engine.alertSettings.fuelDropThreshold / 20),
           _buildThresholdSlider('FASTag Low Balance', '₹${engine.alertSettings.fastagThreshold}', engine.alertSettings.fastagThreshold / 2000),
+          _buildThresholdSlider('Low Mileage Threshold', '${engine.alertSettings.mileageThreshold} km/L', (engine.alertSettings.mileageThreshold ?? 3.0) / 10.0),
           const Divider(height: 48),
           const Text('Notification Channels', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _buildChannelToggle('WhatsApp Alerts', 'Critical safety and fuel events', engine.alertSettings.whatsappEnabled),
           _buildChannelToggle('SMS Alerts', 'Compliance and network events', engine.alertSettings.smsEnabled),
+          _buildChannelToggle('Email Alerts', 'Reports and non-critical updates', true),
           _buildChannelToggle('Push Notifications', 'Real-time dashboard updates', engine.alertSettings.pushEnabled),
         ],
       ),
@@ -131,7 +135,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSecurityTab(DataEngine engine) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,7 +153,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue, foregroundColor: Colors.white),
             child: const Text('Change Password'),
           ),
+          const Divider(height: 48),
+          const Text('Two-Factor Authentication', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Enable 2FA', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            subtitle: const Text('Secure your account with a secondary code', style: TextStyle(fontSize: 12)),
+            trailing: Switch(value: false, onChanged: (v) {}, activeColor: AppTheme.primaryBlue),
+          ),
+          const Divider(height: 48),
+          const Text('Developer API Keys', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          const Text('Use API keys to access fleet data programmatically.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Expanded(child: Text('sk_live_...5f4d', style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold))),
+              IconButton(onPressed: () {}, icon: const Icon(LucideIcons.copy, size: 16)),
+              IconButton(onPressed: () {}, icon: const Icon(LucideIcons.trash2, size: 16, color: AppTheme.danger)),
+            ],
+          ),
+          const Divider(height: 48),
+          const Text('Danger Zone', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.danger)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(foregroundColor: AppTheme.primaryBlue),
+                child: const Text('Export Account Data'),
+              ),
+              const SizedBox(width: 16),
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
+                child: const Text('Delete Account'),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildIntegrationsTab(DataEngine engine) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('External Integrations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text('Connect third-party services to enrich fleet data', style: TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          const SizedBox(height: 24),
+          _buildIntegrationTile('Vahan API', 'Vehicle registration and compliance data', true),
+          _buildIntegrationTile('FASTag', 'Electronic toll collection and balance tracking', true),
+          _buildIntegrationTile('GST Portal', 'e-Way bill generation and verification', false),
+          _buildIntegrationTile('Insurance Providers', 'Auto-fetch insurance renewal dates', false),
+          _buildIntegrationTile('GPS Providers', 'Connect external GPS hardware', true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntegrationTile(String title, String desc, bool connected) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(desc, style: const TextStyle(fontSize: 12)),
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(color: (connected ? AppTheme.success : AppTheme.textSecondary).withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+        child: Text(connected ? 'CONNECTED' : 'DISCONNECTED', style: TextStyle(color: connected ? AppTheme.success : AppTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
       ),
     );
   }
