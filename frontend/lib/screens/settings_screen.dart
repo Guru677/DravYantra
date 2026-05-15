@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../core/theme.dart';
 
@@ -13,6 +14,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _twoFactorEnabled = false;
+  String _apiKey = 'sk_live_...5f4d';
   @override
   Widget build(BuildContext context) {
     final engine = context.watch<DataEngine>();
@@ -160,7 +163,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             contentPadding: EdgeInsets.zero,
             title: const Text('Enable 2FA', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             subtitle: const Text('Secure your account with a secondary code', style: TextStyle(fontSize: 12)),
-            trailing: Switch(value: false, onChanged: (v) {}, activeColor: AppTheme.primaryBlue),
+            trailing: Switch(
+              value: _twoFactorEnabled, 
+              onChanged: (v) {
+                setState(() {
+                  _twoFactorEnabled = v;
+                });
+              }, 
+              activeColor: AppTheme.primaryBlue
+            ),
           ),
           const Divider(height: 48),
           const Text('Developer API Keys', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -169,22 +180,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Expanded(child: Text('sk_live_...5f4d', style: TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold))),
-              IconButton(onPressed: () {}, icon: const Icon(LucideIcons.copy, size: 16)),
-              IconButton(onPressed: () {}, icon: const Icon(LucideIcons.trash2, size: 16, color: AppTheme.danger)),
+              Expanded(
+                child: Text(
+                  _apiKey, 
+                  style: const TextStyle(fontFamily: 'Courier', fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                )
+              ),
+              IconButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: _apiKey));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('API Key copied to clipboard')),
+                  );
+                }, 
+                icon: const Icon(LucideIcons.copy, size: 16)
+              ),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _apiKey = 'No API Key';
+                  });
+                }, 
+                icon: const Icon(LucideIcons.trash2, size: 16, color: AppTheme.danger)
+              ),
             ],
           ),
           const Divider(height: 48),
           const Text('Danger Zone', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.danger)),
           const SizedBox(height: 12),
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 12,
             children: [
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(foregroundColor: AppTheme.primaryBlue),
                 child: const Text('Export Account Data'),
               ),
-              const SizedBox(width: 16),
               OutlinedButton(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),

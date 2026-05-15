@@ -5,6 +5,7 @@ import '../core/theme.dart';
 
 import 'package:provider/provider.dart';
 import '../models/engine.dart';
+import '../widgets/live_ticker.dart';
 
 class FuelScreen extends StatefulWidget {
   const FuelScreen({super.key});
@@ -70,8 +71,6 @@ class _FuelScreenState extends State<FuelScreen> {
           const SizedBox(height: 16),
           _buildKpis(totalSpend, totalLiters, suspectCount),
           const SizedBox(height: 16),
-          _buildSpendChart(),
-          const SizedBox(height: 16),
           _buildAnomalyAlertsPanel(),
           const SizedBox(height: 16),
           Row(
@@ -106,29 +105,20 @@ class _FuelScreenState extends State<FuelScreen> {
       {'city': 'Chennai', 'rate': '₹94.24'},
       {'city': 'Kolkata', 'rate': '₹90.76'},
     ];
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: rates.length,
-        itemBuilder: (context, index) {
-          final r = rates[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Text(r['city']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const SizedBox(width: 4),
-                Text(r['rate']!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-              ],
-            ),
-          );
-        },
-      ),
+    return LiveTicker(
+      children: rates.map((r) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(r['city']!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(width: 4),
+              Text(r['rate']!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -209,172 +199,7 @@ class _FuelScreenState extends State<FuelScreen> {
     );
   }
 
-  Widget _buildSpendChart() {
-    return Container(
-      height: 320, // Increased height for better visibility
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.ecoGreen.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Daily Spend vs Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textPrimary)),
-                  Text('7-day performance overview', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                ],
-              ),
-              Row(
-                children: [
-                  _chartLegendItem('Spend', AppTheme.ecoGreen),
-                  const SizedBox(width: 12),
-                  _chartLegendItem('Budget', AppTheme.danger.withOpacity(0.5), isDashed: true),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) => AppTheme.textPrimary,
-                    tooltipRoundedRadius: 8,
-                    getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
-                      return touchedBarSpots.map((barSpot) {
-                        final isBudget = barSpot.barIndex == 1;
-                        return LineTooltipItem(
-                          '${isBudget ? 'Budget' : 'Spend'}: ₹${barSpot.y.toInt()}',
-                          TextStyle(
-                            color: isBudget ? AppTheme.danger.withOpacity(0.8) : Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
-                  handleBuiltInTouches: true,
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 1000,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.withOpacity(0.1),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                        if (value >= 0 && value < days.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(days[value.toInt()], style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: 2000,
-                      reservedSize: 42,
-                      getTitlesWidget: (value, meta) {
-                        return Text('₹${(value / 1000).toInt()}k', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 10));
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: 0,
-                maxX: 6,
-                minY: 0,
-                maxY: 6000,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [FlSpot(0, 3000), FlSpot(1, 4500), FlSpot(2, 3200), FlSpot(3, 5100), FlSpot(4, 4000), FlSpot(5, 3800), FlSpot(6, 4200)],
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: AppTheme.ecoGreen,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        colors: [
-                          AppTheme.ecoGreen.withOpacity(0.2),
-                          AppTheme.ecoGreen.withOpacity(0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: const [FlSpot(0, 4000), FlSpot(1, 4000), FlSpot(2, 4000), FlSpot(3, 4000), FlSpot(4, 4000), FlSpot(5, 4000), FlSpot(6, 4000)],
-                    isCurved: false,
-                    color: AppTheme.danger.withOpacity(0.3),
-                    barWidth: 2,
-                    dashArray: [5, 5],
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _chartLegendItem(String label, Color color, {bool isDashed = false}) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: isDashed ? null : color,
-            borderRadius: BorderRadius.circular(3),
-            border: isDashed ? Border.all(color: color, width: 2) : null,
-          ),
-          child: isDashed 
-            ? Center(child: Container(width: 6, height: 2, color: color)) 
-            : null,
-        ),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
 
   Widget _buildLogsTable(List<FuelLog> logs) {
     return Card(

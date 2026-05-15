@@ -94,25 +94,44 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   Widget _buildNotificationSettings() {
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppTheme.primaryBlue.withOpacity(0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.1))),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 16,
-        runSpacing: 8,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(LucideIcons.bellRing, size: 18, color: AppTheme.primaryBlue),
               SizedBox(width: 8),
-              Text('Notification Delivery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text('Notification Delivery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             ],
           ),
-          _toggle('WhatsApp', _whatsappEnabled, (v) => setState(() => _whatsappEnabled = v)),
-          _toggle('SMS', _smsEnabled, (v) => setState(() => _smsEnabled = v)),
-          _toggle('Email', _emailEnabled, (v) => setState(() => _emailEnabled = v)),
-          _toggle('Push', _pushEnabled, (v) => setState(() => _pushEnabled = v)),
+          const SizedBox(height: 16),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.5,
+            children: [
+              _channelCard('WhatsApp', LucideIcons.messageSquare, _whatsappEnabled, (v) => setState(() => _whatsappEnabled = v)),
+              _channelCard('SMS', LucideIcons.smartphone, _smsEnabled, (v) => setState(() => _smsEnabled = v)),
+              _channelCard('Email', LucideIcons.mail, _emailEnabled, (v) => setState(() => _emailEnabled = v)),
+              _channelCard('Push', LucideIcons.bell, _pushEnabled, (v) => setState(() => _pushEnabled = v)),
+            ],
+          ),
         ],
       ),
     );
@@ -121,31 +140,60 @@ class _AlertsScreenState extends State<AlertsScreen> {
   Widget _buildPerTypeTogglesPanel(DataEngine engine) {
     final settings = engine.alertSettings;
     return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Alert Types Enabled', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-          const SizedBox(height: 8),
+          const Text('Alert Types Enabled', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          const SizedBox(height: 12),
           Wrap(
-            spacing: 16,
+            spacing: 8,
+            runSpacing: 8,
             children: settings.perTypeToggles.entries.map((e) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(e.key.toUpperCase(), style: const TextStyle(fontSize: 12)),
-                  Switch(
-                    value: e.value,
-                    onChanged: (val) {
-                      final newToggles = Map<String, bool>.from(settings.perTypeToggles);
-                      newToggles[e.key] = val;
-                      engine.updateAlertSettings(settings.copyWith(perTypeToggles: newToggles));
-                    },
-                    activeColor: AppTheme.primaryBlue,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ],
+              final isEnabled = e.value;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isEnabled ? AppTheme.primaryBlue.withOpacity(0.1) : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isEnabled ? AppTheme.primaryBlue.withOpacity(0.3) : Colors.grey.shade300),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      e.key.toUpperCase(), 
+                      style: TextStyle(
+                        fontSize: 11, 
+                        fontWeight: FontWeight.bold,
+                        color: isEnabled ? AppTheme.primaryBlue : AppTheme.textSecondary
+                      )
+                    ),
+                    const SizedBox(width: 4),
+                    Switch(
+                      value: isEnabled,
+                      onChanged: (val) {
+                        final newToggles = Map<String, bool>.from(settings.perTypeToggles);
+                        newToggles[e.key] = val;
+                        engine.updateAlertSettings(settings.copyWith(perTypeToggles: newToggles));
+                      },
+                      activeColor: AppTheme.primaryBlue,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ],
+                ),
               );
             }).toList(),
           ),
@@ -154,13 +202,27 @@ class _AlertsScreenState extends State<AlertsScreen> {
     );
   }
 
-  Widget _toggle(String label, bool value, Function(bool) onChanged) {
-    return Row(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12)),
-        const SizedBox(width: 4),
-        Switch(value: value, onChanged: onChanged, activeColor: AppTheme.primaryBlue, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-      ],
+  Widget _channelCard(String title, IconData icon, bool value, Function(bool) onChanged) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primaryBlue, size: 18),
+          const SizedBox(width: 8),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+          Switch(
+            value: value, 
+            onChanged: onChanged, 
+            activeColor: AppTheme.primaryBlue,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
     );
   }
 
@@ -200,17 +262,24 @@ class _AlertsScreenState extends State<AlertsScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          Text(title, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 2),
+          Text(subtitle, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
         ],
       ),
     );
@@ -232,63 +301,88 @@ class _AlertsScreenState extends State<AlertsScreen> {
       );
     }
 
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: alerts.length,
-        separatorBuilder: (context, index) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final a = alerts[index];
-          final color = a.sev == 'danger' ? AppTheme.danger : AppTheme.warning;
-          
-          IconData icon;
-          switch (a.category) {
-            case AlertCategory.safety: icon = LucideIcons.shieldAlert; break;
-            case AlertCategory.fuel: icon = LucideIcons.fuel; break;
-            case AlertCategory.compliance: icon = LucideIcons.fileWarning; break;
-            case AlertCategory.connectivity: icon = LucideIcons.wifiOff; break;
-          }
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: alerts.length,
+      itemBuilder: (context, index) {
+        final a = alerts[index];
+        final color = a.sev == 'danger' ? AppTheme.danger : AppTheme.warning;
+        
+        IconData icon;
+        switch (a.category) {
+          case AlertCategory.safety: icon = LucideIcons.shieldAlert; break;
+          case AlertCategory.fuel: icon = LucideIcons.fuel; break;
+          case AlertCategory.compliance: icon = LucideIcons.fileWarning; break;
+          case AlertCategory.connectivity: icon = LucideIcons.wifiOff; break;
+        }
 
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color, size: 20)),
-            title: Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              children: [
-                Text(a.truck, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text(a.sev.toUpperCase(), style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.bold)),
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                if (a.status == AlertStatus.acknowledged)
-                  const Icon(LucideIcons.checkCircle, color: AppTheme.success, size: 14),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text('Driver: ${a.driver}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(a.msg, style: TextStyle(fontSize: 13, color: a.status == AlertStatus.acknowledged ? AppTheme.textSecondary : AppTheme.textPrimary)),
-                const SizedBox(height: 4),
-                Text(a.time, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-              ],
-            ),
-            trailing: a.status == AlertStatus.pending 
-              ? TextButton(
-                  onPressed: () => engine.acknowledgeAlert(a.id),
-                  child: const Text('Acknowledge', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                )
-              : const Text('Acknowledged', style: TextStyle(fontSize: 11, color: AppTheme.success)),
-          );
-        },
-      ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(a.truck, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                          child: Text(a.sev.toUpperCase(), style: TextStyle(fontSize: 9, color: color, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text('Driver: ${a.driver}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 2),
+                    Text(a.msg, style: TextStyle(fontSize: 13, color: a.status == AlertStatus.acknowledged ? AppTheme.textSecondary : AppTheme.textPrimary)),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(a.time, style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                        a.status == AlertStatus.pending 
+                          ? InkWell(
+                              onTap: () => engine.acknowledgeAlert(a.id),
+                              child: const Text('Acknowledge', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue)),
+                            )
+                          : const Text('Acknowledged', style: TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

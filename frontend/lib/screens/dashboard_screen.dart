@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../core/theme.dart';
 import '../models/engine.dart';
+import '../widgets/live_ticker.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -80,46 +81,24 @@ class _LiveTicker extends StatelessWidget {
     final alerts = context.watch<DataEngine>().alerts;
     if (alerts.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.textPrimary,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: AppTheme.danger, borderRadius: BorderRadius.circular(4)),
-            child: const Text('LIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+    return LiveTicker(
+      children: alerts.map((a) {
+        return Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.circle, size: 8, color: a.sev == 'danger' ? AppTheme.danger : AppTheme.warning),
+              const SizedBox(width: 6),
+              Text(a.truck, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
+              const SizedBox(width: 6),
+              const Text('—', style: TextStyle(color: Colors.white54)),
+              const SizedBox(width: 6),
+              Text(a.msg, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: alerts.map((a) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 24),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.circle, size: 8, color: a.sev == 'danger' ? AppTheme.danger : AppTheme.warning),
-                        const SizedBox(width: 6),
-                        Text(a.truck, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 12)),
-                        const SizedBox(width: 6),
-                        const Text('—', style: TextStyle(color: Colors.white54)),
-                        const SizedBox(width: 6),
-                        Text(a.msg, style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 }
@@ -454,11 +433,11 @@ class _DriverLeaderboard extends StatelessWidget {
               children: [
                 Icon(LucideIcons.award, color: AppTheme.warning, size: 16),
                 SizedBox(width: 8),
-                Text('Top 5 Drivers', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Top 3 Drivers', style: TextStyle(fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 12),
-            ...sortedDrivers.take(5).map((d) {
+            ...sortedDrivers.take(3).map((d) {
               int rank = sortedDrivers.indexOf(d) + 1;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
